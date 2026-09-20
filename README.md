@@ -177,6 +177,22 @@ error box, so the card rendered *above* it. The harness now contains a decoy
 element reproducing that trap.
 
 ```bash
+WATCH_SECONDS=55 node test/live-firefox.mjs
+```
+
+The only check that stubs nothing: loads the real add-on into a real Firefox
+via `web-ext run` and visits real YouTube, asserting against the add-on's own
+console output. It is what confirms the Firefox-specific parts — the sandbox
+global, `background.scripts`, MV3 host permissions — and that a working video
+is never even looked at. Slow, needs network, and depends on live third-party
+videos keeping their state, so it is not part of the routine suite.
+
+Two things make it work: `web-ext run` has no `--headless` flag for
+firefox-desktop (the browser reads `MOZ_HEADLESS`), and web-ext discards the
+browser's stdout unless `--verbose`, which is where the content script's
+output arrives.
+
+```bash
 node test/flow.mjs
 ```
 

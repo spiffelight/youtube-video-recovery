@@ -134,18 +134,26 @@
    * Pick the error box that is actually on screen.
    *
    * `document.querySelector` returns the first match in document order, which
-   * is not necessarily the visible one: YouTube can hold a hidden placeholder
-   * earlier in the DOM. Anchoring to that put the whole panel above the real
-   * error box. Every match is considered, and the first rendered one wins;
-   * if none render, the first match is used so the panel still appears.
+   * is not necessarily the visible one. Every match is considered, and only a
+   * rendered one counts.
+   *
+   * Returning null when nothing renders is the whole gate. YouTube keeps this
+   * element on every watch page and hides it — measured on a working video it
+   * is `display: none`, 0x0, empty; on a private one, `display: flex`,
+   * 739x424, carrying the error text. So its rendered state alone separates
+   * the two.
+   *
+   * An earlier version fell back to the first match when nothing rendered, so
+   * that a panel would still appear if the markup changed. That defeated the
+   * gate entirely: on every ordinary video it handed back the hidden element,
+   * and the add-on went on to parse the page and start a lookup for a video
+   * that was playing perfectly well. A missing error box means there is
+   * nothing wrong with this video, and the right response is to do nothing.
    */
   function findErrorAnchor() {
-    var firstMatch = null;
-
     for (var i = 0; i < ERROR_SELECTORS.length; i++) {
       var found = document.querySelectorAll(ERROR_SELECTORS[i]);
       for (var j = 0; j < found.length; j++) {
-        if (!firstMatch) firstMatch = found[j];
         if (!isRendered(found[j])) continue;
 
         if (reportedSelector !== ERROR_SELECTORS[i]) {
@@ -157,12 +165,7 @@
         return found[j];
       }
     }
-
-    if (firstMatch && reportedSelector !== 'fallback') {
-      reportedSelector = 'fallback';
-      log('no rendered error box found; using the first match as a fallback');
-    }
-    return firstMatch;
+    return null;
   }
 
   // Ancestors that mark the end of the player area. The card is attached

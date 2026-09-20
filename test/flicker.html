@@ -40,7 +40,21 @@
       var video = document.getElementById('vid');
 
       if (scene === 'playing') {
-        // readyState is a prototype getter; an own property shadows it.
+        /*
+         * What a working watch page actually looks like, measured on one:
+         * the error element is present but display:none, 0x0 and empty.
+         * Nothing should activate at all.
+         */
+        Object.defineProperty(video, 'readyState', { value: 4 });
+        errorBox.style.cssText = 'display:none';
+        errorBox.textContent = '';
+      } else if (scene === 'playing-visible-error') {
+        /*
+         * Defence in depth: a rendered error box on a page whose player is
+         * nevertheless playing. Should not happen, but if the markup ever
+         * changes so the box is left visible, the DOM check must still stop
+         * the lookup.
+         */
         Object.defineProperty(video, 'readyState', { value: 4 });
         errorBox.style.cssText = 'display:block;width:640px;height:360px';
       } else {
@@ -74,7 +88,8 @@
               postMessage: function (msg) {
                 if (!msg || msg.type !== 'start') return;
                 setTimeout(function () {
-                  var result = scene === 'playing'
+                  // Both playing scenes must be answered the way oEmbed would.
+                  var result = scene.indexOf('playing') === 0
                     ? { verdict: 'ok', found: true, sources: [], links: [] }
                     : { verdict: 'private', found: false, sources: [], links: [] };
                   listeners.forEach(function (fn) {
@@ -88,6 +103,19 @@
         }
       };
 
+      /*
+       * Capture the add-on's own log so the test can tell prevention from
+       * catching: reaching "anchor found" means it entered the lookup and
+       * then backed out, rather than never starting.
+       */
+      window.__logs = [];
+      var realLog = console.log.bind(console);
+      console.log = function () {
+        var parts = Array.prototype.slice.call(arguments).join(' ');
+        if (parts.indexOf('[yt-recover]') !== -1) window.__logs.push(parts);
+        realLog.apply(null, arguments);
+      };
+
       // Churn the DOM the way a playing video does.
       var churn = document.getElementById('churn');
       var n = 0;
@@ -99,7 +127,10 @@
           scene: scene,
           connects: window.__connects,
           panelPresent: !!document.getElementById('ytrp-panel'),
-          mutations: n
+          mutations: n,
+          enteredLookup: window.__logs.some(function (l) {
+            return l.indexOf('anchor found') !== -1;
+          })
         });
       }, 3000);
     })();

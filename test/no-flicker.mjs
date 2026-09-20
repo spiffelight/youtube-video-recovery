@@ -55,6 +55,21 @@ console.log('\n=== a playing video, under continuous DOM churn ===');
   check('the page really did churn', r.mutations > 50, `${r.mutations} mutations`);
   check('no panel shown', r.panelPresent === false);
   check('no lookup started', r.connects === 0, `${r.connects} connects`);
+  /*
+   * Prevention, not catching. Reaching "anchor found" means the add-on
+   * entered the lookup and then backed out — which is cheap, but it still
+   * parses the page on every ordinary video. On a working page the error box
+   * is hidden, so there should be nothing to anchor to and no entry at all.
+   */
+  check('never entered the lookup', r.enteredLookup === false);
+}
+
+console.log('\n=== a playing video whose error box is (wrongly) visible ===');
+{
+  // The anchor gate cannot help here, so the DOM check has to.
+  const r = render('playing-visible-error');
+  check('no panel shown', r.panelPresent === false);
+  check('no lookup started', r.connects === 0, `${r.connects} connects`);
 }
 
 console.log('\n=== an unavailable video, under the same churn ===');
