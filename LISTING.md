@@ -10,7 +10,7 @@ does *and what it transmits*, so both are stated up front rather than buried.
 
 ## Name
 
-    YouTube Video Recovery
+    YouTube Recall
 
 ## Summary (max 250 characters)
 

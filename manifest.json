@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "YouTube Video Recovery",
+  "name": "YouTube Recall",
   "version": "0.1.0",
   "description": "When a YouTube video is private, deleted or blocked, shows what it was — title, channel, date and thumbnail — recovered from public archives.",
 

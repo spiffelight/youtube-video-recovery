@@ -1,4 +1,4 @@
-# YouTube Video Recovery
+# YouTube Recall
 
 A Firefox/Chrome extension that answers "what *was* this?" when YouTube shows
 **Video unavailable**. It renders a card in the player area with the
@@ -16,7 +16,7 @@ persistent install the package needs signing via AMO.
 
 > **Then grant site access.** Firefox MV3 does *not* grant `host_permissions`
 > at install, so a freshly loaded add-on can reach nothing and every lookup
-> comes back empty. Open `about:addons` → **YouTube Video Recovery** →
+> comes back empty. Open `about:addons` → **YouTube Recall** →
 > **Permissions**, and enable access for `youtube.com`, `archive.org` and
 > `web.archive.org`. This is the single most likely reason for the panel not
 > appearing at all.
