@@ -8,7 +8,9 @@
  * The result was a card flashing several times a second on ordinary videos,
  * each flash firing a fresh network lookup.
  *
- * Runs the real content.js in headless Chrome against a churning page.
+ * Runs the real content.js in a headless browser engine against a churning
+ * page. The engine is only needed to produce the DOM dump; the add-on itself
+ * targets Firefox.
  */
 import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
@@ -17,23 +19,23 @@ import { dirname, join } from 'node:path';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
-const chrome = [
-  process.env.CHROME_PATH,
+const engine = [
+  process.env.BROWSER_PATH,
   'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
   'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
   '/usr/bin/google-chrome',
   '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 ].filter(Boolean).find((p) => existsSync(p));
 
-if (!chrome) {
-  console.log('SKIP  no Chrome found (set CHROME_PATH to run this check)');
+if (!engine) {
+  console.log('SKIP  no headless browser found (set BROWSER_PATH to run this check)');
   process.exit(0);
 }
 
 const page = join(here, 'flicker.html').replace(/\\/g, '/');
 
 function render(scene) {
-  const dom = execFileSync(chrome, [
+  const dom = execFileSync(engine, [
     '--headless', '--disable-gpu', '--virtual-time-budget=20000', '--dump-dom',
     `file:///${page}?v=X1gxkuNzMf4&scene=${scene}`
   ], { encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 });

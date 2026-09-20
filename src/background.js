@@ -6,13 +6,9 @@
  * instead of youtube.com's own origin policy.
  */
 
-// Chrome loads this as a classic service worker (single entry point);
-// Firefox loads core.js itself via background.scripts.
-if (typeof importScripts === 'function') {
-  importScripts('/src/lib/core.js');
-}
-
-var ext = (typeof browser !== 'undefined' && browser.runtime) ? browser : chrome;
+// background.scripts lists core.js ahead of this file, so it has already
+// assigned YTRecoverCore by the time this runs — nothing to import.
+var ext = browser;
 var core = globalThis.YTRecoverCore;
 
 /* ---------------------------------------------------------------- *
@@ -82,10 +78,9 @@ function maybePrune() {
 var LOCAL_PERMS = ['history', 'bookmarks'];
 
 /*
- * Firefox MV3 does not grant host permissions at install — unlike Chrome,
- * where `host_permissions` are granted outright. Until the user grants them,
- * archive requests fail, so this is checked up front and reported rather than
- * surfacing as a lookup that silently finds nothing.
+ * Firefox MV3 does not grant host permissions at install. Until the user
+ * grants them, archive requests fail, so this is checked up front and reported
+ * rather than surfacing as a lookup that silently finds nothing.
  */
 var ARCHIVE_HOSTS = [
   'https://web.archive.org/*',
@@ -95,7 +90,7 @@ var ARCHIVE_HOSTS = [
 function hasHostAccess() {
   if (!ext.permissions || !ext.permissions.contains) return Promise.resolve(true);
   return ext.permissions.contains({ origins: ARCHIVE_HOSTS })
-    .catch(function () { return true; });   // Chrome: granted at install
+    .catch(function () { return true; });   // never block the lookup outright
 }
 
 function hasPermission(name) {

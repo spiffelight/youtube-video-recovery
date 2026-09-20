@@ -9,17 +9,15 @@
 (function () {
   'use strict';
 
-  var ext = (typeof browser !== 'undefined' && browser.runtime) ? browser : chrome;
+  var ext = browser;
 
   /*
    * Read the shared module off the bare global, NOT off `window`.
    *
-   * In Chrome a content script's `window` is its own isolated global, so
-   * `window.YTRecoverCore` resolves. In Firefox `window` is an Xray wrapper
-   * around the *page's* window while core.js assigned to the sandbox global —
-   * two different objects — so `window.YTRecoverCore` is undefined and every
-   * later use throws. An unqualified reference finds the sandbox global in
-   * Firefox and the isolated global in Chrome.
+   * `window` is an Xray wrapper around the *page's* window, while core.js
+   * assigned to the script's own sandbox global — two different objects — so
+   * `window.YTRecoverCore` is undefined and every later use throws. An
+   * unqualified reference finds the sandbox global.
    */
   var core = (typeof YTRecoverCore !== 'undefined') ? YTRecoverCore : null;
   if (!core) {

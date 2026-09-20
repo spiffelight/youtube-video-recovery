@@ -11,7 +11,9 @@
  * real one. The harness reproduces that trap with a decoy container and a
  * display:none error element ahead of the real pair.
  *
- * Runs the real content.js in headless Chrome and checks the serialized DOM.
+ * Runs the real content.js in a headless browser engine and checks the
+ * serialized DOM. The engine is only needed to produce the DOM dump; the
+ * add-on itself targets Firefox.
  */
 import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
@@ -20,24 +22,24 @@ import { dirname, join } from 'node:path';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
-const CHROME_CANDIDATES = [
-  process.env.CHROME_PATH,
+const BROWSER_CANDIDATES = [
+  process.env.BROWSER_PATH,
   'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
   'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
   '/usr/bin/google-chrome',
   '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 ].filter(Boolean);
 
-const chrome = CHROME_CANDIDATES.find((p) => existsSync(p));
-if (!chrome) {
-  console.log('SKIP  no Chrome found (set CHROME_PATH to run this check)');
+const engine = BROWSER_CANDIDATES.find((p) => existsSync(p));
+if (!engine) {
+  console.log('SKIP  no headless browser found (set BROWSER_PATH to run this check)');
   process.exit(0);
 }
 
 const page = join(here, 'preview.html');
 const url = `file:///${page.replace(/\\/g, '/')}?v=X1gxkuNzMf4`;
 
-const dom = execFileSync(chrome, [
+const dom = execFileSync(engine, [
   '--headless', '--disable-gpu', '--virtual-time-budget=6000', '--dump-dom', url
 ], { encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 });
 

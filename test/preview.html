@@ -9,8 +9,8 @@
     document.write('<link rel="stylesheet" href="../src/panel.css?t=' + Date.now() + '">');
   </script>
   <style>
-    /* Stand-in for the YouTube chrome around the panel, so the card is
-       judged in roughly the context it actually appears in. */
+    /* Stand-in for the YouTube page furniture around the panel, so the card
+       is judged in roughly the context it actually appears in. */
     body {
       margin: 0;
       padding: 24px;
@@ -195,7 +195,7 @@
         };
       }
 
-      window.chrome = {
+      window.browser = {
         runtime: {
           connect: fakePort,
           sendMessage: function () { return Promise.resolve({ ok: true }); }

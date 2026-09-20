@@ -1,6 +1,6 @@
 # YouTube Recall
 
-A Firefox/Chrome extension that answers "what *was* this?" when YouTube shows
+A Firefox extension that answers "what *was* this?" when YouTube shows
 **Video unavailable**. It renders a card in the player area with the
 title, channel, publish date, duration, counts, description and — when one
 survives anywhere — a thumbnail.
@@ -20,10 +20,6 @@ persistent install the package needs signing via AMO.
 > **Permissions**, and enable access for `youtube.com`, `archive.org` and
 > `web.archive.org`. This is the single most likely reason for the panel not
 > appearing at all.
-
-**Chrome / Edge** — `chrome://extensions` → enable *Developer mode* → *Load
-unpacked* → pick this folder. Chrome grants host permissions at install, so
-there is no extra step.
 
 Optional local lookups (history, bookmarks) are off by default. Turn them on in
 the extension's options page; the extension is fully functional without them.
@@ -131,20 +127,17 @@ A 2010 capture exposes `"author"` and a bare `datePublished`; a 2026 capture
 hides the same facts in `ytInitialPlayerResponse`. Extraction is layered per
 field across eras.
 
-**A content script's `window` is not its global in Firefox.** In Chrome the
-isolated world's `window` *is* the content script global, so `window.Foo`
-resolves a value another content script assigned to `globalThis`. In Firefox
-`window` is an Xray wrapper around the page's window while the script's global
-is a separate sandbox, so the same lookup silently yields `undefined` and the
-script throws on first use — with no visible symptom beyond the background
-script never waking. Shared state is read through an unqualified reference,
-which resolves correctly in both.
+**A content script's `window` is not its global.** `window` is an Xray wrapper
+around the *page's* window, while the script's global is a separate sandbox, so
+`window.YTRecoverCore` silently yields `undefined` and the script throws on
+first use — with no visible symptom beyond the background script never waking.
+Shared state is read through an unqualified reference, which finds the sandbox
+global.
 
-**Firefox MV3 does not grant `host_permissions` at install.** Chrome does. An
-add-on that works immediately in Chrome reaches nothing in Firefox until the
-user grants site access, which looks identical to "the archives had no record".
-The background checks `permissions.contains` up front and the panel says so
-explicitly.
+**Firefox MV3 does not grant `host_permissions` at install.** Until the user
+grants site access every archive request fails, which looks identical to "the
+archives had no record". The background checks `permissions.contains` up front
+and the panel says so explicitly.
 
 **YouTube sets `require-trusted-types-for 'script'`.** The panel is built with
 `createElement`/`textContent` — no `innerHTML` anywhere. There is no `img-src`
@@ -164,9 +157,15 @@ normal, and the client backs off).
 ```bash
 node test/classify.mjs    # playabilityStatus mapping, incl. the no-panel cases
 node test/flow.mjs        # background state machine
-node test/dom-order.mjs   # anchors to the visible error box (needs Chrome)
+node test/dom-order.mjs   # anchors to the visible error box (headless browser)
 node test/audit.mjs       # dead code, permissions, package contents
 ```
+
+`dom-order.mjs` and `no-flicker.mjs` load the real `content.js` in a headless
+browser engine and assert against the serialized DOM dump, which is the only
+reason they need one installed (set `BROWSER_PATH` if it is not found).
+`live-firefox.mjs` below is the Firefox-side equivalent and needs nothing
+extra.
 
 `classify.mjs` and `dom-order.mjs` both exist because of bugs that shipped: a
 scheduled livestream reports `LIVE_STREAM_OFFLINE`, which had no case and fell
@@ -236,12 +235,11 @@ transitions never advance and animated widths read as `0px`.
 npx web-ext lint --source-dir=. --self-hosted
 ```
 
-Mozilla's own validator. Should report **0 errors**. Two warnings are expected
-and intentional: `BACKGROUND_SERVICE_WORKER_IGNORED` (the `service_worker` key
-exists for Chrome and is correctly ignored by Firefox, which uses
-`background.scripts`) and `KEY_FIREFOX_ANDROID_UNSUPPORTED_BY_MIN_VERSION`
-(`data_collection_permissions` on Firefox for Android; this is a desktop
-extension).
+Mozilla's own validator. Should report **0 errors** and one expected warning,
+`KEY_FIREFOX_ANDROID_UNSUPPORTED_BY_MIN_VERSION`: `data_collection_permissions`
+is not supported on Firefox for Android below 142, and this is a desktop
+extension, so the warning is resolved by the compatibility setting in the AMO
+listing rather than in the manifest.
 
 ## Bounding the lookup
 

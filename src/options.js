@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  var ext = (typeof browser !== 'undefined' && browser.runtime) ? browser : chrome;
+  var ext = browser;
   var status = document.getElementById('status');
   var BOXES = ['history', 'bookmarks'];
 

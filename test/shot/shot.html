@@ -14,10 +14,10 @@
     * { box-sizing: border-box; }
 
     /*
-     * Headless Chrome has no Roboto and substitutes a synthesised OBLIQUE
-     * face for it, so every screenshot came out italic. Real browsers render
-     * the panel upright (YouTube ships Roboto), so this override exists only
-     * to stop the screenshots misrepresenting the add-on.
+     * The headless engine used for these shots has no Roboto and substitutes
+     * a synthesised OBLIQUE face for it, so every screenshot came out italic.
+     * Real browsers render the panel upright (YouTube ships Roboto), so this
+     * override exists only to stop the shots misrepresenting the add-on.
      */
     body, .ytrp, .ytrp * {
       font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif !important;
@@ -160,10 +160,8 @@
       }
 
       /*
-       * Stub `browser`, not `chrome`: these shots are rendered by headless
-       * Chrome, where `window.chrome` already exists and assigning over it
-       * does not reliably take. content.js prefers `browser` when it has a
-       * `runtime`, and Chrome never defines `browser` on a page.
+       * Stub `browser` — the global content.js reads the extension API off.
+       * An ordinary page never defines it, so the add-on sees exactly this.
        */
       window.browser = {
         runtime: { connect: fakePort, sendMessage: function () { return Promise.resolve({}); } }

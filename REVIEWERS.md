@@ -82,9 +82,6 @@ record, 6 hours for a miss). The options page shows the count and can clear it.
 - The panel is built entirely with `createElement` / `textContent`. `innerHTML`
   is never assigned — YouTube sets `require-trusted-types-for 'script'`, and
   the add-on does not relax it or any other page security header.
-- `background.service_worker` is present alongside `background.scripts` for
-  Chrome compatibility. Firefox correctly ignores it and uses `scripts`;
-  `web-ext lint` notes this as expected.
 - Desktop only. The content script matches `www.youtube.com` only, and the
   panel's layout targets the desktop watch page.
 - Two URL shapes are handled: `/watch?v=<id>` and `/live/<id>`. A livestream

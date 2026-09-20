@@ -62,7 +62,6 @@ function makeEnv({ cache = {}, hostAccess = true, localHit = null, perms = [] } 
 function loadBackground(env, coreStub) {
   const sandbox = {
     browser: env.ext,
-    chrome: env.ext,
     globalThis: null,
     console,
     setTimeout, clearTimeout, Promise, Date, Math, Object, JSON, String, Number, Array, RegExp
