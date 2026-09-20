@@ -104,3 +104,8 @@ does *and what it transmits*, so both are stated up front rather than buried.
     Firefox for desktop, 140.0 and later. Not submitted for Firefox for
     Android: the panel's layout targets the desktop watch page and has not
     been tested on mobile.
+
+## License
+
+    Select "MIT License" in the AMO license dropdown. The repository carries a
+    matching LICENSE file, which is also inside the submitted package.

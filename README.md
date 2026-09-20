@@ -279,8 +279,10 @@ node test/audit.mjs                             # expect AUDIT CLEAN
 npx web-ext build --source-dir=. --overwrite-dest
 ```
 
-The built `.zip` in `web-ext-artifacts/` is the upload. It contains eight
-files and no tests, configs or docs.
+The built `.zip` in `web-ext-artifacts/` is the upload. It contains nine
+files — the add-on, its icon and its licence — and no tests, configs or docs.
+The licence is in the package because MIT requires the notice to travel with
+copies of the software; the other documents here are excluded.
 
 - **[REVIEWERS.md](REVIEWERS.md)** — paste into "Notes for Reviewers". The
   add-on does nothing on a working video, so reviewers need known-dead video
@@ -319,4 +321,7 @@ rather than in the manifest.
   among the sources of a title it did not supply.
 - The archive chain takes tens of seconds on a cold lookup. Results are cached
   (30 days for hits, 6 hours for misses) and the local pass renders first.
-- No icons are bundled, so the browser uses its default puzzle-piece.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
