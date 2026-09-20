@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>YouTube Video Recovery — options</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      margin: 0;
+      padding: 20px;
+      min-width: 380px;
+      font: 14px/1.5 system-ui, "Segoe UI", Roboto, sans-serif;
+    }
+    h1 { margin: 0 0 4px; font-size: 16px; }
+    .sub { margin: 0 0 18px; opacity: 0.7; font-size: 13px; }
+    .opt {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 12px;
+      margin-bottom: 10px;
+      border: 1px solid rgba(128, 128, 128, 0.35);
+      border-radius: 8px;
+    }
+    .opt input { margin-top: 3px; }
+    .opt label { font-weight: 600; cursor: pointer; }
+    .opt p { margin: 3px 0 0; opacity: 0.75; font-size: 12.5px; }
+    .note { margin-top: 14px; font-size: 12.5px; opacity: 0.7; }
+    #status { margin-top: 12px; font-size: 12.5px; min-height: 1.2em; opacity: 0.85; }
+  </style>
+</head>
+<body>
+  <h1>Archive access</h1>
+  <p class="sub">Required. Firefox does not grant this at install time.</p>
+
+  <div class="opt">
+    <input type="checkbox" id="hosts">
+    <div>
+      <label for="hosts">Allow lookups on archive.org and the Wayback Machine</label>
+      <p>Without this, no archived title, date or thumbnail can be fetched and
+         every lookup comes back empty. Chrome grants this automatically;
+         Firefox requires it to be granted once.</p>
+    </div>
+  </div>
+
+  <h1 style="margin-top:22px">Local lookups</h1>
+  <p class="sub">Optional. Everything else works without these.</p>
+
+  <div class="opt">
+    <input type="checkbox" id="history">
+    <div>
+      <label for="history">Search my browsing history</label>
+      <p>If you watched the video before it went away, your history still has
+         its title — instantly, with no network request. It also proves the
+         video existed, which tells a deleted video apart from an ID that
+         never existed.</p>
+    </div>
+  </div>
+
+  <div class="opt">
+    <input type="checkbox" id="bookmarks">
+    <div>
+      <label for="bookmarks">Search my bookmarks</label>
+      <p>A bookmark saved while the video was alive keeps its original title.</p>
+    </div>
+  </div>
+
+  <h1 style="margin-top:22px">Stored data</h1>
+  <p class="sub">Kept in the extension's own local storage, on this machine only.</p>
+
+  <div class="opt">
+    <div style="flex:1">
+      <label id="cache-count">Counting…</label>
+      <p>Results are cached so a video you have already looked up answers
+         instantly. Found records are kept 30 days, misses 6 hours, and expired
+         entries are swept automatically. Nothing is uploaded anywhere.</p>
+      <p style="margin-top:8px">
+        <button type="button" id="clear-cache">Clear cached results</button>
+      </p>
+    </div>
+  </div>
+
+  <p class="note">
+    Only the 11-character video ID of the page you are looking at is used as
+    the search term, and matches are used only to fill in that panel. Nothing
+    is uploaded anywhere.
+  </p>
+
+  <div id="status"></div>
+
+  <script src="options.js"></script>
+</body>
+</html>

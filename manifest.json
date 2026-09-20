@@ -1,0 +1,55 @@
+{
+  "manifest_version": 3,
+  "name": "YouTube Video Recovery",
+  "version": "0.1.0",
+  "description": "When a YouTube video is private, deleted or blocked, shows what it was — title, channel, date and thumbnail — recovered from public archives.",
+
+  "icons": {
+    "48": "icons/icon.svg",
+    "96": "icons/icon.svg",
+    "128": "icons/icon.svg"
+  },
+
+  "permissions": ["storage"],
+
+  "optional_permissions": ["history", "bookmarks"],
+
+  "options_ui": {
+    "page": "src/options.html",
+    "open_in_tab": false
+  },
+
+  "host_permissions": [
+    "https://www.youtube.com/*",
+    "https://web.archive.org/*",
+    "https://archive.org/*"
+  ],
+
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.youtube.com/watch*",
+        "https://www.youtube.com/live/*"
+      ],
+      "js": ["src/lib/core.js", "src/content.js"],
+      "css": ["src/panel.css"],
+      "run_at": "document_idle"
+    }
+  ],
+
+  "background": {
+    "service_worker": "src/background.js",
+    "scripts": ["src/lib/core.js", "src/background.js"]
+  },
+
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "{7361dcec-dbda-424b-bf61-41a01720e1c4}",
+      "strict_min_version": "140.0",
+
+      "data_collection_permissions": {
+        "required": ["browsingActivity"]
+      }
+    }
+  }
+}

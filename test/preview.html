@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en" dark>
+<head>
+  <meta charset="utf-8">
+  <title>Panel preview</title>
+  <!-- Cache-busted: python http.server sends no cache headers, and a stale
+       panel.css silently makes the preview lie about the current styling. -->
+  <script>
+    document.write('<link rel="stylesheet" href="../src/panel.css?t=' + Date.now() + '">');
+  </script>
+  <style>
+    /* Stand-in for the YouTube chrome around the panel, so the card is
+       judged in roughly the context it actually appears in. */
+    body {
+      margin: 0;
+      padding: 24px;
+      background: #0f0f0f;
+      color: #f1f1f1;
+      font-family: Roboto, Arial, sans-serif;
+    }
+    html:not([dark]) body { background: #fff; color: #0f0f0f; }
+
+    ytd-watch-flexy { display: block; max-width: 1280px; margin: 0 auto; }
+    #player-full-bleed-container { width: 100%; }
+
+    #error-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-height: 300px;
+      background: #000;
+      border-radius: 12px;
+    }
+    #error-screen b { font-size: 20px; color: #fff; }
+    #error-screen span { font-size: 14px; color: #aaa; }
+
+    .switcher { max-width: 1280px; margin: 0 auto 16px; font-size: 13px; }
+    .switcher a { color: #3ea6ff; margin-right: 14px; }
+  </style>
+</head>
+<body>
+  <div class="switcher">
+    <a href="?v=X1gxkuNzMf4">private + recovered</a>
+    <a href="?v=AAAAAAAAAAA">no archived record</a>
+    <a href="?v=X1gxkuNzMf4&local=1">with local history hit</a>
+    <a href="?v=X1gxkuNzMf4&noaccess=1">no archive access</a>
+    <a href="?v=X1gxkuNzMf4&partial=1">history: seen, no title</a>
+    <a href="?v=X1gxkuNzMf4&slow=1">slow (watch progress)</a>
+    <a href="#" id="theme">toggle theme</a>
+  </div>
+
+  <!--
+    Mirrors the trap on the real watch page: an earlier, unrelated element
+    with the same id as the player container. document.querySelector would
+    return THIS one, putting the panel above the error box instead of below.
+  -->
+  <div id="full-bleed-container" data-decoy="1">
+    <!--
+      A hidden placeholder error box ahead of the real one. document.querySelector
+      returns THIS, and anchoring to it put the panel above the visible error box.
+    -->
+    <yt-playability-error-supported-renderers id="error-screen" data-decoy="1"
+      style="display:none"></yt-playability-error-supported-renderers>
+  </div>
+
+  <ytd-watch-flexy>
+    <div id="full-bleed-container">
+      <div id="player-full-bleed-container">
+        <yt-playability-error-supported-renderers id="error-screen">
+          <b>Video unavailable</b>
+          <span id="reason">This video is private</span>
+        </yt-playability-error-supported-renderers>
+      </div>
+    </div>
+  </ytd-watch-flexy>
+
+  <script src="preview-data.js"></script>
+  <script>
+    // Mirrors what YouTube inlines, so content.js reads it the same way.
+    (function () {
+      var params = new URLSearchParams(location.search);
+      var id = params.get('v') || 'X1gxkuNzMf4';
+      var isPrivate = id === 'X1gxkuNzMf4';
+      var speed = params.has('slow') ? 3 : 1;
+
+      var pr = {
+        playabilityStatus: {
+          status: isPrivate ? 'LOGIN_REQUIRED' : 'ERROR',
+          reason: isPrivate ? 'This video is private' : 'Video unavailable'
+        }
+      };
+      document.getElementById('reason').textContent = pr.playabilityStatus.reason;
+
+      var s = document.createElement('script');
+      s.type = 'text/plain';   // scanned, not executed
+      s.textContent = 'var ytInitialPlayerResponse = ' + JSON.stringify(pr) + ';';
+      document.body.appendChild(s);
+
+      var fixtures = window.__YTRP_FIXTURES || {};
+
+      /*
+       * Stands in for the background script, replaying a plausible timeline so
+       * the progress card and the pause/resume flow can be judged at the pace
+       * they actually run at.
+       */
+      function fakePort() {
+        var listeners = [];
+        var vid = id;
+        function at(delay, m) {
+          setTimeout(function () {
+            listeners.forEach(function (fn) { fn(m); });
+          }, delay * speed);
+        }
+
+        function baseResult() {
+          var r = JSON.parse(JSON.stringify(fixtures[vid] || { found: false, sources: [], links: [] }));
+          r.localAvailable = params.has('local');
+          return r;
+        }
+
+        // What the fast phase alone could know: a title, no archive sources.
+        function fastResult() {
+          var r = baseResult();
+          r.sources = [];
+          r.mirror = null;
+          r.thumbnail = null;
+          r.published = null;
+          if (params.has('local')) {
+            r.sources = [{ kind: 'your history', date: '2026-09-11', local: true }];
+            r.existed = true;
+          } else {
+            r.found = false;
+            r.title = null;
+          }
+          return r;
+        }
+
+        function runArchives() {
+          ['ia', 'wayback'].forEach(function (st) {
+            at(0, { type: 'progress', stage: st, state: 'running' });
+          });
+          at(1600, { type: 'progress', stage: 'ia', state: 'hit' });
+          // archive.org lands while Wayback is still going: the card is
+          // complete-looking but the footer must name what is outstanding.
+          at(1650, { type: 'update', result: baseResult(), paused: false, done: false });
+          at(3600, { type: 'progress', stage: 'wayback', state: 'hit' });
+          at(3700, { type: 'update', result: baseResult(), paused: false, done: true });
+        }
+
+        return {
+          onMessage: { addListener: function (fn) { listeners.push(fn); } },
+          onDisconnect: { addListener: function () {} },
+          disconnect: function () {},
+          postMessage: function (msg) {
+            if (!msg) return;
+
+            if (msg.type === 'resume') { runArchives(); return; }
+            if (msg.type !== 'start') return;
+
+            if (params.has('noaccess')) {
+              at(300, { type: 'update', paused: false, done: true, result: {
+                found: false, needsHostAccess: true, sources: [],
+                links: (fixtures[vid] || {}).links || []
+              } });
+              return;
+            }
+
+            at(50, { type: 'progress', stage: 'local', state: 'running' });
+            at(300, { type: 'progress', stage: 'local',
+                      state: params.has('partial') ? 'partial'
+                           : params.has('local') ? 'hit' : 'skipped' });
+
+            at(100, { type: 'progress', stage: 'youtube', state: 'running' });
+            at(900, { type: 'progress', stage: 'youtube', state: 'miss' });
+
+            if (params.has('hold')) return;
+
+            setTimeout(function () {
+              var fast = fastResult();
+              if (fast.found) {
+                // Something cheap was found: stop and offer the archives.
+                listeners.forEach(function (fn) {
+                  fn({ type: 'update', result: fast, paused: true, done: false });
+                });
+              } else {
+                listeners.forEach(function (fn) {
+                  fn({ type: 'update', result: fast, paused: false, done: false });
+                });
+                runArchives();
+              }
+            }, 950 * speed);
+          }
+        };
+      }
+
+      window.chrome = {
+        runtime: {
+          connect: fakePort,
+          sendMessage: function () { return Promise.resolve({ ok: true }); }
+        }
+      };
+
+      document.getElementById('theme').addEventListener('click', function (e) {
+        e.preventDefault();
+        var h = document.documentElement;
+        if (h.hasAttribute('dark')) h.removeAttribute('dark'); else h.setAttribute('dark', '');
+      });
+    })();
+  </script>
+  <script src="../src/lib/core.js"></script>
+  <script src="../src/content.js"></script>
+</body>
+</html>

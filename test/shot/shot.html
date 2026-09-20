@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en" dark>
+<head>
+  <meta charset="utf-8">
+  <title>Listing screenshot</title>
+  <link rel="stylesheet" href="../../src/panel.css">
+  <style>
+    /*
+     * A stand-in for the YouTube watch page, so the listing screenshot shows
+     * the panel in the context it actually appears in. The panel itself is
+     * rendered by the real content.js against the real panel.css — nothing
+     * here restyles it, so the screenshot cannot drift from the add-on.
+     */
+    * { box-sizing: border-box; }
+
+    /*
+     * Headless Chrome has no Roboto and substitutes a synthesised OBLIQUE
+     * face for it, so every screenshot came out italic. Real browsers render
+     * the panel upright (YouTube ships Roboto), so this override exists only
+     * to stop the screenshots misrepresenting the add-on.
+     */
+    body, .ytrp, .ytrp * {
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif !important;
+      font-style: normal !important;
+    }
+    body {
+      margin: 0;
+      background: #0f0f0f;
+      color: #f1f1f1;
+      font-family: Roboto, Arial, sans-serif;
+    }
+
+    .masthead {
+      display: flex; align-items: center; gap: 18px;
+      height: 56px; padding: 0 20px;
+      background: #0f0f0f;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    .burger { width: 18px; }
+    .burger i { display: block; height: 2px; background: #f1f1f1; margin: 4px 0; border-radius: 2px; }
+    .brand { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 19px; letter-spacing: -.5px; }
+    .brand .play {
+      width: 30px; height: 21px; border-radius: 6px; background: #ff0033;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .brand .play::after {
+      content: ""; border-left: 8px solid #fff;
+      border-top: 5px solid transparent; border-bottom: 5px solid transparent;
+      margin-left: 2px;
+    }
+    .search {
+      flex: 1; max-width: 520px; height: 34px;
+      border: 1px solid rgba(255,255,255,.15); border-radius: 18px;
+      display: flex; align-items: center; padding: 0 14px;
+      color: #888; font-size: 13px;
+    }
+    .avatar { width: 30px; height: 30px; border-radius: 50%; background: #2f6fed; margin-left: auto; }
+
+    .page { display: block; max-width: 1120px; margin: 0 auto; padding: 18px 20px 0; }
+
+    #player-full-bleed-container { width: 100%; }
+
+    #error-screen {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 10px; height: 330px; background: #000; border-radius: 12px;
+    }
+    #error-screen .glyph { width: 118px; height: 74px; position: relative; margin-bottom: 4px; }
+    #error-screen .glyph .frame {
+      position: absolute; left: 26px; top: 8px; width: 74px; height: 52px;
+      border: 4px solid #c39bf5; border-radius: 2px;
+    }
+    #error-screen .glyph .dot {
+      position: absolute; left: 8px; top: 0; width: 38px; height: 38px;
+      border-radius: 50%; background: #3b7ff0;
+    }
+    #error-screen .glyph .tri {
+      position: absolute; right: 2px; top: 24px;
+      border-left: 20px solid transparent; border-right: 20px solid transparent;
+      border-bottom: 34px solid #1fbf92;
+    }
+    #error-screen b { font-size: 22px; font-weight: 600; }
+    #error-screen span { font-size: 14px; color: #aaa; }
+    #error-screen .home {
+      margin-top: 4px; padding: 8px 16px; border: 1px solid rgba(255,255,255,.2);
+      border-radius: 18px; color: #3ea6ff; font-size: 13px; font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  <div class="masthead">
+    <div class="burger"><i></i><i></i><i></i></div>
+    <div class="brand"><span class="play"></span>YouTube</div>
+    <div class="search">Search</div>
+    <div class="avatar"></div>
+  </div>
+
+  <!-- Mirrors the real watch page so insertionPoint resolves the same way. -->
+  <ytd-watch-flexy class="page">
+    <div id="full-bleed-container">
+      <div id="player-full-bleed-container">
+      <yt-playability-error-supported-renderers id="error-screen">
+        <div class="glyph"><span class="dot"></span><span class="frame"></span><span class="tri"></span></div>
+        <b>Video unavailable</b>
+        <span id="reason">This video is private</span>
+        <div class="home">GO TO HOME</div>
+        </yt-playability-error-supported-renderers>
+      </div>
+    </div>
+  </ytd-watch-flexy>
+
+  <script src="record.js"></script>
+  <script>
+    (function () {
+      var scene = new URLSearchParams(location.search).get('scene') || 'found';
+      var record = window.__YTRP_RECORD;
+
+      // Use the locally saved thumbnail so the shot renders offline and
+      // deterministically.
+      record.thumbnail = 'thumb.png';
+      record.thumbnailSource = 'archive.org';
+
+      var pr = { playabilityStatus: { status: 'LOGIN_REQUIRED', reason: 'This video is private' } };
+      if (scene === 'empty') {
+        pr = { playabilityStatus: { status: 'ERROR', reason: 'Video unavailable' } };
+        document.getElementById('reason').textContent = 'Video unavailable';
+      }
+
+      var s = document.createElement('script');
+      s.type = 'text/plain';
+      s.textContent = 'var ytInitialPlayerResponse = ' + JSON.stringify(pr) + ';';
+      document.body.appendChild(s);
+
+      function fakePort() {
+        var listeners = [];
+        function emit(m) { listeners.forEach(function (fn) { fn(m); }); }
+        return {
+          onMessage: { addListener: function (fn) { listeners.push(fn); } },
+          onDisconnect: { addListener: function () {} },
+          postMessage: function (msg) {
+            if (!msg || msg.type !== 'start') return;
+            setTimeout(function () {
+              if (scene === 'progress') {
+                emit({ type: 'progress', stage: 'local', state: 'hit' });
+                emit({ type: 'progress', stage: 'youtube', state: 'miss' });
+                emit({ type: 'progress', stage: 'ia', state: 'hit' });
+                emit({ type: 'progress', stage: 'wayback', state: 'running' });
+                return;   // hold mid-search for the shot
+              }
+              if (scene === 'empty') {
+                emit({ type: 'update', done: true, paused: false, result: {
+                  found: false, sources: [], localAvailable: false,
+                  verdict: 'gone-unconfirmed', links: record.links
+                } });
+                return;
+              }
+              emit({ type: 'update', done: true, paused: false, result: record });
+            }, 60);
+          }
+        };
+      }
+
+      /*
+       * Stub `browser`, not `chrome`: these shots are rendered by headless
+       * Chrome, where `window.chrome` already exists and assigning over it
+       * does not reliably take. content.js prefers `browser` when it has a
+       * `runtime`, and Chrome never defines `browser` on a page.
+       */
+      window.browser = {
+        runtime: { connect: fakePort, sendMessage: function () { return Promise.resolve({}); } }
+      };
+
+      /*
+       * On a real watch page the card ends up above the error graphic. This
+       * mock's simplified DOM puts it below, so the shot is nudged to match
+       * what users actually see — the card itself is still rendered entirely
+       * by the real content.js and panel.css.
+       */
+      setTimeout(function () {
+        var panel = document.getElementById('ytrp-panel');
+        var flexy = document.querySelector('ytd-watch-flexy');
+        if (panel && flexy) flexy.insertBefore(panel, flexy.firstChild);
+      }, 600);
+    })();
+  </script>
+  <script src="../../src/lib/core.js"></script>
+  <script src="../../src/content.js"></script>
+</body>
+</html>

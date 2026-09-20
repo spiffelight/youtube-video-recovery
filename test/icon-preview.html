@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Icon preview</title>
+  <style>
+    body {
+      margin: 0; padding: 32px;
+      background: #0f0f0f; color: #f1f1f1;
+      font: 13px/1.5 system-ui, sans-serif;
+    }
+    .row { display: flex; align-items: flex-end; gap: 28px; margin-bottom: 28px; }
+    .cell { text-align: center; }
+    .cell span { display: block; margin-top: 8px; opacity: .6; font-size: 11px; }
+    .light { background: #fff; padding: 20px; border-radius: 12px; }
+    img { display: block; image-rendering: auto; }
+  </style>
+</head>
+<body>
+  <!-- Icons are judged at the sizes they are actually shown at, not at 128px. -->
+  <div class="row">
+    <div class="cell"><img src="../icons/icon.svg" width="128" height="128"><span>128 — listing</span></div>
+    <div class="cell"><img src="../icons/icon.svg" width="96" height="96"><span>96</span></div>
+    <div class="cell"><img src="../icons/icon.svg" width="48" height="48"><span>48 — about:addons</span></div>
+    <div class="cell"><img src="../icons/icon.svg" width="32" height="32"><span>32</span></div>
+    <div class="cell"><img src="../icons/icon.svg" width="16" height="16"><span>16 — toolbar</span></div>
+  </div>
+
+  <div class="row light">
+    <div class="cell"><img src="../icons/icon.svg" width="96" height="96"></div>
+    <div class="cell"><img src="../icons/icon.svg" width="48" height="48"></div>
+    <div class="cell"><img src="../icons/icon.svg" width="32" height="32"></div>
+    <div class="cell"><img src="../icons/icon.svg" width="16" height="16"></div>
+  </div>
+</body>
+</html>

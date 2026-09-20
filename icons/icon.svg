@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128"
+     role="img" aria-label="YouTube Video Recovery">
+  <title>YouTube Video Recovery</title>
+
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2d2d36"/>
+      <stop offset="1" stop-color="#16161b"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="128" height="128" rx="28" fill="url(#bg)"/>
+
+  <!--
+    Two shapes only: a counter-clockwise recovery arc around a play triangle.
+    An earlier version also drew a dashed "missing video" frame, which read
+    well at 128px and turned to mush at the 16-32px sizes the icon is
+    actually shown at.
+  -->
+  <g transform="translate(64 64)">
+    <path d="M34 0A34 34 0 1 1 23.2-24.8"
+          fill="none" stroke="#3ea6ff" stroke-width="10" stroke-linecap="round"/>
+    <path d="M23.2-40.5v17.5H5.7"
+          fill="none" stroke="#3ea6ff" stroke-width="10"
+          stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M-9.5-15.6L15.8-1a1.8 1.8 0 0 1 0 3.1L-9.5 16.7A1.8 1.8 0 0 1-12.2 15.1V-14.1A1.8 1.8 0 0 1-9.5-15.6z"
+          fill="#ffffff"/>
+  </g>
+</svg>
