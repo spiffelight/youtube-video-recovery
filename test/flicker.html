@@ -48,6 +48,19 @@
         Object.defineProperty(video, 'readyState', { value: 4 });
         errorBox.style.cssText = 'display:none';
         errorBox.textContent = '';
+      } else if (scene === 'live-zero-size') {
+        /*
+         * Measured on a real /live/ page for a private video: the error box is
+         * display:flex but 0x0. A size-based test rejects it and the add-on
+         * does nothing on a video that is plainly unavailable.
+         */
+        video.parentNode.removeChild(video);
+        errorBox.style.cssText = 'display:flex;width:0;height:0;overflow:hidden';
+        var prLive = { playabilityStatus: { status: 'LOGIN_REQUIRED', reason: 'This video is private' } };
+        var tagLive = document.createElement('script');
+        tagLive.type = 'text/plain';
+        tagLive.textContent = 'var ytInitialPlayerResponse = ' + JSON.stringify(prLive) + ';';
+        document.body.appendChild(tagLive);
       } else if (scene === 'playing-visible-error') {
         /*
          * Defence in depth: a rendered error box on a page whose player is

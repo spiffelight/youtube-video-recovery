@@ -111,21 +111,39 @@
   var reportedSelector = null;
 
   /*
-   * Does this element put anything on screen?
+   * Is this error box switched on?
    *
-   * Not a plain rect test. `yt-playability-error-supported-renderers` is a
-   * custom element and can be `display: contents`, generating no box of its
-   * own while its children render normally — so an element with no rect may
-   * still be the real, visible error box. Its descendants are what settle it.
+   * Size is not the test. Measured on three real pages:
+   *
+   *   /watch, video plays      display: none   0x0      <- inactive
+   *   /watch, video private    display: flex   739x424  <- active
+   *   /live,  video private    display: flex   0x0      <- active
+   *
+   * YouTube keeps this element on every watch page and switches it with
+   * `display`, so `display` is what separates the cases. A size test passes
+   * the middle row and fails the other two — which is how an earlier version
+   * both activated on every working video (it fell back when nothing
+   * measured) and then, once that fallback was removed, stopped working on
+   * /live pages entirely.
+   *
+   * The remaining checks only confirm the element is in the layout tree at
+   * all, since `display` is read from the element itself and does not reflect
+   * an ancestor being hidden.
    */
-  function isRendered(el) {
+  function isActiveErrorBox(el) {
     if (!el) return false;
-    var r = el.getBoundingClientRect();
-    if (r.width > 0 && r.height > 0) return true;
+
+    var style = getComputedStyle(el);
+    if (style.display === 'none' || style.visibility === 'hidden') return false;
+
+    if (el.offsetParent !== null) return true;       // laid out somewhere
+    if (el.getClientRects().length) return true;     // has boxes, even empty
+    if (el.textContent && el.textContent.trim()) return true;
+
+    // `display: contents` generates no box of its own; its children do.
     var kids = el.querySelectorAll('*');
     for (var i = 0; i < kids.length; i++) {
-      var kr = kids[i].getBoundingClientRect();
-      if (kr.width > 0 && kr.height > 0) return true;
+      if (kids[i].getClientRects().length) return true;
     }
     return false;
   }
@@ -137,11 +155,10 @@
    * is not necessarily the visible one. Every match is considered, and only a
    * rendered one counts.
    *
-   * Returning null when nothing renders is the whole gate. YouTube keeps this
-   * element on every watch page and hides it — measured on a working video it
-   * is `display: none`, 0x0, empty; on a private one, `display: flex`,
-   * 739x424, carrying the error text. So its rendered state alone separates
-   * the two.
+   * Returning null when no box is active is the whole gate. YouTube keeps
+   * this element on every watch page and switches it with `display`, so that
+   * is what separates a working video from a broken one — see
+   * isActiveErrorBox for the measurements.
    *
    * An earlier version fell back to the first match when nothing rendered, so
    * that a panel would still appear if the markup changed. That defeated the
@@ -154,7 +171,7 @@
     for (var i = 0; i < ERROR_SELECTORS.length; i++) {
       var found = document.querySelectorAll(ERROR_SELECTORS[i]);
       for (var j = 0; j < found.length; j++) {
-        if (!isRendered(found[j])) continue;
+        if (!isActiveErrorBox(found[j])) continue;
 
         if (reportedSelector !== ERROR_SELECTORS[i]) {
           reportedSelector = ERROR_SELECTORS[i];

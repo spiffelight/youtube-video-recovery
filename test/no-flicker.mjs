@@ -72,6 +72,19 @@ console.log('\n=== a playing video whose error box is (wrongly) visible ===');
   check('no lookup started', r.connects === 0, `${r.connects} connects`);
 }
 
+console.log('\n=== a /live/ page whose error box is display:flex but 0x0 ===');
+{
+  /*
+   * The exact shape measured on a real /live/ page for a private video.
+   * Making the anchor test size-based broke precisely this: the box is
+   * switched on, so the add-on must act, even though it measures nothing.
+   */
+  const r = render('live-zero-size');
+  check('panel shown', r.panelPresent === true);
+  check('entered the lookup', r.enteredLookup === true);
+  check('exactly one lookup started', r.connects === 1, `${r.connects} connects`);
+}
+
 console.log('\n=== an unavailable video, under the same churn ===');
 {
   const r = render('unavailable');
