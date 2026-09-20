@@ -12,7 +12,7 @@ const core = require('../src/lib/core.js');
 const FIXTURES = [
   {
     id: 'X1gxkuNzMf4',
-    label: 'private (hololive karaoke rerun, privated Sep 2026)',
+    label: 'private (archived while public, hidden later)',
     expect: { oembed: 403, found: true, thumbnail: true }
   },
   {

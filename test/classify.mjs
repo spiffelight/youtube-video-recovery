@@ -67,12 +67,31 @@ for (const c of CASES) {
   check(`  ↳ healthy(${c.state})`, core.healthy(got.state), c.healthy);
 }
 
-console.log('\n=== localisation must not affect classification ===');
+console.log('\n=== classification must not depend on the reason text ===');
 {
-  // Observed on a sv-SE session: the reason is translated, the status is not.
-  const sv = core.classify({ playabilityStatus: { status: 'LOGIN_REQUIRED', reason: 'Privat video' } });
-  check('Swedish "Privat video" still classifies as private', sv.state, core.STATE.PRIVATE);
-  check('reason passed through verbatim for display', sv.reason, 'Privat video');
+  /*
+   * `reason` is written in whatever language the viewer's YouTube is in, so
+   * the same status reaches every user with a different sentence attached.
+   * None of these may change the outcome. The examples are arbitrary; the
+   * empty one covers YouTube shipping no reason at all.
+   */
+  const REASONS = [
+    '',
+    'This video is private',
+    'Dieses Video ist privat',
+    'この動画は非公開です'
+  ];
+  for (const reason of REASONS) {
+    const got = core.classify({ playabilityStatus: { status: 'LOGIN_REQUIRED', reason } });
+    check(`LOGIN_REQUIRED with reason ${JSON.stringify(reason)}`,
+          got.state, core.STATE.PRIVATE);
+  }
+
+  const kept = core.classify({
+    playabilityStatus: { status: 'LOGIN_REQUIRED', reason: 'Dieses Video ist privat' }
+  });
+  check('reason passed through verbatim for display',
+        kept.reason, 'Dieses Video ist privat');
 }
 
 console.log('\n=== video id from the URL ===');

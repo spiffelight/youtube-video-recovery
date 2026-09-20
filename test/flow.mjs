@@ -146,6 +146,8 @@ console.log('\n=== history matched the URL but kept only the tombstone title ===
 {
   // The real-world case: the page was revisited after the video died, so
   // history holds "Video unavailable" rather than the original title.
+  // No page signals are passed here, which is the backstop path: the page
+  // state could not be read, so only the English patterns are available.
   const env = makeEnv({ perms: ['history'],
                         localHit: { id: 'X1gxkuNzMf4', title: 'Video unavailable - YouTube' } });
   const sandbox = loadBackground(env, stubCore({ fastTitle: null, archiveTitle: 'Archive Title' }));
@@ -160,6 +162,56 @@ console.log('\n=== history matched the URL but kept only the tombstone title ===
   check('existence still recorded', !!(final && final.result && final.result.existed), true);
   const kinds = (final && final.result && final.result.sources || []).map((s) => s.kind);
   check('history not claimed as a source', kinds.includes('your history'), false);
+}
+
+console.log('\n=== a tombstone title in any language is not a title ===');
+{
+  /*
+   * The stored title is the page's own error text, translated. Only checking
+   * for English strings works for viewers whose YouTube is in English and for
+   * nobody else — the error text then arrives as if it were the video's
+   * recovered title. Comparing against the page's own words does not care
+   * what language they are in, which is what this covers.
+   */
+  const tombstone = 'Dieses Video ist nicht verfügbar';
+  const env = makeEnv({ perms: ['history'],
+                        localHit: { id: 'X1gxkuNzMf4', title: tombstone + ' - YouTube' } });
+  const sandbox = loadBackground(env, stubCore({ fastTitle: null, archiveTitle: 'Archive Title' }));
+  const { messages } = drive(env, sandbox, {
+    type: 'start', id: 'X1gxkuNzMf4', state: 'gone',
+    pageTitle: tombstone + ' - YouTube', reason: tombstone
+  });
+  await tick();
+
+  const localProgress = messages.filter((m) => m.type === 'progress' && m.stage === 'local').pop();
+  check('local reported as partial, not hit', localProgress && localProgress.state, 'partial');
+
+  const final = messages.filter((m) => m.type === 'update').pop();
+  check('title is the archived one, not the error text',
+        final && final.result && final.result.title, 'Archive Title');
+  check('existence still recorded', !!(final && final.result && final.result.existed), true);
+  const kinds = (final && final.result && final.result.sources || []).map((s) => s.kind);
+  check('history not claimed as a source', kinds.includes('your history'), false);
+}
+
+console.log('\n=== a real title survives the tombstone check, in any language ===');
+{
+  // The other half of the rule: a stored title that is *not* what the page is
+  // showing is a genuine record, and must still be used and credited.
+  const tombstone = 'Dieses Video ist nicht verfügbar';
+  const env = makeEnv({ perms: ['history'],
+                        localHit: { id: 'X1gxkuNzMf4', title: 'Real Title - YouTube' } });
+  const sandbox = loadBackground(env, stubCore({ fastTitle: null, archiveTitle: null }));
+  const { messages } = drive(env, sandbox, {
+    type: 'start', id: 'X1gxkuNzMf4', state: 'gone',
+    pageTitle: tombstone + ' - YouTube', reason: tombstone
+  });
+  await tick();
+
+  const last = messages.filter((m) => m.type === 'update').pop();
+  check('shows the local title', last && last.result && last.result.title, 'Real Title');
+  const kinds = (last && last.result && last.result.sources || []).map((s) => s.kind);
+  check('history credited as a source', kinds.includes('your history'), true);
 }
 
 console.log('\n=== host permissions missing ===');

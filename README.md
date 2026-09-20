@@ -107,9 +107,10 @@ also yields the title the video carried when it died.
 nothing decompresses it automatically. Sniff the magic bytes and run it through
 `DecompressionStream('gzip')`.
 
-**`playabilityStatus.reason` is localized** — it came back as "Privat video" on
-a sv-SE session. Branch on `status` codes only; the reason string is for
-display.
+**`playabilityStatus.reason` is localized** — the same restriction arrives
+translated into whatever language the viewer's YouTube is in, so any check
+written against the English wording is written against one language out of
+many. Branch on `status` codes only; the reason string is for display.
 
 **Full-text search will confidently return the wrong video.** Searching the
 nonexistent ID `AAAAAAAAAAA` matched a fails compilation whose *description*
@@ -237,7 +238,7 @@ from becoming a spinner with no end:
 | Per-request timeout | 15s (35s for an archived watch page, which is large) |
 | Retry on 429/503/504 | up to 3 attempts, exponential backoff |
 | Retry on timeout | 2 attempts — the server already had its full window |
-| Whole archive phase | 60s deadline, then every in-flight request is aborted |
+| Whole archive phase | 120s deadline, then every in-flight request is aborted |
 
 A stage that is retrying shows `retrying 2/3` rather than looking stalled, and
 one that is abandoned reports **timed out** or **stopped** rather than

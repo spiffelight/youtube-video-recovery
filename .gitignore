@@ -18,3 +18,7 @@ secrets.json
 node_modules/
 .DS_Store
 Thumbs.db
+
+# Local launch config for the preview server. Editor tooling, not the add-on:
+# nothing here is needed to build, test or submit the extension.
+.claude/

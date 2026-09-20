@@ -19,12 +19,16 @@ The add-on has no accounts, no login, no paid tier and no server of its own.
 The add-on only does anything on a watch page for a video that will not play.
 A normal video shows nothing at all, so testing needs one of these:
 
+Each panel should carry a title, a channel, and the badge named below. The
+titles themselves are not quoted here: they belong to third-party videos, and
+what matters for review is that a title is recovered at all.
+
 | URL | Expected |
 |---|---|
-| `https://www.youtube.com/watch?v=X1gxkuNzMf4` | **PRIVATE** badge, title *"▶️RERUN▶️【UNARCHIVED KARAOKE】A TRIBUTE TO LOVE SONGS ~! 💄"*, channel *Elizabeth Rose Bloodflame Ch. hololive*, thumbnail, and a note that a full copy exists on archive.org |
-| `https://www.youtube.com/watch?v=jrjTiWbtny0` | **PRIVATE** badge, title *"【UNARCHIVED ROCK & METAL KARAOKE】rip throat #calliolive"*, channel *Mori Calliope Ch. hololive-EN*, published 2026-06-15, plus a 3,096 MB archived copy |
-| `https://www.youtube.com/watch?v=o1he09EtejI` | **DELETED** badge, title *"Sendung mit der Maus: Aufklärung über Liebe"*, channel *GrummligerTroll*, published 2010-05-20. A deliberately old case: the recovered record comes from a 2019 capture of a 2010 upload |
-| `https://www.youtube.com/watch?v=AAAAAAAAAAA` | No record found. The panel explicitly says the video may never have existed rather than inventing one |
+| `https://www.youtube.com/watch?v=X1gxkuNzMf4` | **PRIVATE** badge; a recovered title, channel and thumbnail, and a note that a full copy is archived |
+| `https://www.youtube.com/watch?v=jrjTiWbtny0` | **PRIVATE** badge; a recovered title, channel, publish date, and a multi-gigabyte archived copy |
+| `https://www.youtube.com/watch?v=o1he09EtejI` | **DELETED** badge; a 2010 upload recovered from a 2019 capture — deliberately old, to exercise the extraction across YouTube's HTML eras |
+| `https://www.youtube.com/watch?v=AAAAAAAAAAA` | No record found. The panel says the video may never have existed rather than inventing one. This ID is synthetic and always will be, so it is stable as a fixture |
 | `https://www.youtube.com/watch?v=jNQXAC9IVRw` | Nothing — the video plays normally, so no panel appears |
 
 These are live third-party videos whose state could change. If one now plays

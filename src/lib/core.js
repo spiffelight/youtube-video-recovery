@@ -15,8 +15,9 @@
    * State model
    *
    * Keyed on playabilityStatus.status only. The `reason` string YouTube
-   * ships is localized ("Privat video" on a sv-SE session), so it is safe
-   * to display but never safe to branch on.
+   * ships is localized — it arrives translated into whatever language the
+   * viewer's YouTube is in, so the same restriction reads differently for
+   * every user. It is safe to display but never safe to branch on.
    * ------------------------------------------------------------------ */
   var STATE = {
     OK: 'ok',
@@ -634,8 +635,8 @@
 
   /*
    * Fallback for mirrors filed under a non-standard identifier — this is how
-   * the 4.4 GB hololive mirror was found, since it is not filed as
-   * `youtube-<ID>`.
+   * the large community mirrors are usually missed, since they are not filed
+   * as `youtube-<ID>`.
    *
    * Full-text search is the one probe that can confidently return the wrong
    * video: searching a nonexistent ID matched an unrelated fails compilation

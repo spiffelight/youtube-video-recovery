@@ -815,7 +815,19 @@
       }
     });
 
-    port.postMessage({ type: 'start', id: id, state: state.state });
+    /*
+     * The page's own words for why this video will not play, in whatever
+     * language it is being viewed in. The background compares stored history
+     * titles against these instead of against a list of English strings, so
+     * a tombstone title is recognised in every language rather than one.
+     */
+    port.postMessage({
+      type: 'start',
+      id: id,
+      state: state.state,
+      pageTitle: document.title,
+      reason: state.reason
+    });
   }
 
   function tick() {

@@ -109,24 +109,54 @@ function hasPermission(name) {
  * History keeps only the most recent title per URL, so these cannot be
  * recovered — they can only be rejected.
  */
-function usableTitle(raw) {
+/*
+ * Reduced to what carries meaning: the trailing site name dropped, case and
+ * whitespace flattened. Used to compare a stored title against the page.
+ */
+function normalizeTitle(s) {
+  return String(s || '')
+    .replace(/\s*-\s*YouTube\s*$/i, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+/*
+ * Reject a stored title that is only the error message re-recorded.
+ *
+ * The tombstone text is a *translation* of the same sentence the page is
+ * showing right now, so a list of English strings can only ever catch the
+ * viewers whose YouTube happens to be in English — everyone else gets the
+ * error text presented as a recovered title. The page's own title and reason
+ * are therefore compared against directly, which needs no translations at
+ * all; the English patterns remain only as a backstop for the case where the
+ * page's own state could not be read.
+ */
+function usableTitle(raw, page) {
   if (!raw) return null;
   var t = String(raw).replace(/\s*-\s*YouTube\s*$/i, '').trim();
   if (!t) return null;
   if (/^youtube$/i.test(t)) return null;
   if (/^video unavailable$/i.test(t)) return null;
   if (/^(private video|deleted video)$/i.test(t)) return null;
+
+  if (page) {
+    var n = normalizeTitle(t);
+    if (n && (n === normalizeTitle(page.title) || n === normalizeTitle(page.reason))) {
+      return null;
+    }
+  }
   return t;
 }
 
-function probeHistory(id) {
+function probeHistory(id, page) {
   if (!ext.history) return Promise.resolve(null);
   return ext.history.search({ text: id, startTime: 0, maxResults: 25 })
     .then(function (items) {
       for (var i = 0; i < (items || []).length; i++) {
         var it = items[i];
         if (!it.url || it.url.indexOf(id) === -1) continue;
-        var title = usableTitle(it.title);
+        var title = usableTitle(it.title, page);
         if (!title) continue;
         return {
           title: title,
@@ -146,7 +176,7 @@ function probeHistory(id) {
     .catch(function () { return null; });
 }
 
-function probeBookmarks(id) {
+function probeBookmarks(id, page) {
   if (!ext.bookmarks) return Promise.resolve(null);
   return ext.bookmarks.search({ query: id })
     .then(function (items) {
@@ -154,7 +184,7 @@ function probeBookmarks(id) {
         var it = items[i];
         if (!it.url || it.url.indexOf(id) === -1) continue;
         return {
-          title: usableTitle(it.title),
+          title: usableTitle(it.title, page),
           kind: 'your bookmarks',
           date: null,
           existed: true
@@ -165,11 +195,15 @@ function probeBookmarks(id) {
     .catch(function () { return null; });
 }
 
-function probeLocal(id) {
+/*
+ * `page` is what the page says about itself right now — its title and the
+ * reason it displays — and is what makes the tombstone check language-proof.
+ */
+function probeLocal(id, page) {
   return Promise.all(LOCAL_PERMS.map(hasPermission)).then(function (granted) {
     var jobs = [
-      granted[0] ? probeHistory(id) : Promise.resolve(null),
-      granted[1] ? probeBookmarks(id) : Promise.resolve(null)
+      granted[0] ? probeHistory(id, page) : Promise.resolve(null),
+      granted[1] ? probeBookmarks(id, page) : Promise.resolve(null)
     ];
     return Promise.all(jobs).then(function (res) {
       var hit = res[0] || res[1];
@@ -387,7 +421,7 @@ ext.runtime.onConnect.addListener(function (port) {
 
       // Local first: no network, and it settles long before YouTube answers.
       send({ type: 'progress', id: id, stage: 'local', state: 'running' });
-      return probeLocal(id).then(function (local) {
+      return probeLocal(id, { title: msg.pageTitle, reason: msg.reason }).then(function (local) {
         if (!session) return;
         session.local = local;
         session.localAvailable = local.available;
