@@ -1,0 +1,70 @@
+/*
+ * The add-on must decide once and then stay quiet.
+ *
+ * A playing video mutates the DOM continuously, which drives the add-on's
+ * MutationObserver. Two bugs made that catastrophic: on an SPA navigation the
+ * searching card was mounted *before* anything was known, and `tick` treated
+ * "no panel present" as "never ran" — so it re-entered on every mutation.
+ * The result was a card flashing several times a second on ordinary videos,
+ * each flash firing a fresh network lookup.
+ *
+ * Runs the real content.js in headless Chrome against a churning page.
+ */
+import { execFileSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+const here = dirname(fileURLToPath(import.meta.url));
+
+const chrome = [
+  process.env.CHROME_PATH,
+  'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+  'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+  '/usr/bin/google-chrome',
+  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+].filter(Boolean).find((p) => existsSync(p));
+
+if (!chrome) {
+  console.log('SKIP  no Chrome found (set CHROME_PATH to run this check)');
+  process.exit(0);
+}
+
+const page = join(here, 'flicker.html').replace(/\\/g, '/');
+
+function render(scene) {
+  const dom = execFileSync(chrome, [
+    '--headless', '--disable-gpu', '--virtual-time-budget=20000', '--dump-dom',
+    `file:///${page}?v=X1gxkuNzMf4&scene=${scene}`
+  ], { encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 });
+
+  const m = dom.match(/<pre id="result">([^<]*)<\/pre>/);
+  if (!m || m[1] === 'pending') throw new Error(`no result for scene=${scene}`);
+  return JSON.parse(m[1]);
+}
+
+let failures = 0;
+function check(name, ok, detail = '') {
+  if (!ok) failures++;
+  console.log(`   ${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? ' — ' + detail : ''}`);
+}
+
+console.log('\n=== a playing video, under continuous DOM churn ===');
+{
+  const r = render('playing');
+  check('the page really did churn', r.mutations > 50, `${r.mutations} mutations`);
+  check('no panel shown', r.panelPresent === false);
+  check('no lookup started', r.connects === 0, `${r.connects} connects`);
+}
+
+console.log('\n=== an unavailable video, under the same churn ===');
+{
+  const r = render('unavailable');
+  check('the page really did churn', r.mutations > 50, `${r.mutations} mutations`);
+  check('panel shown', r.panelPresent === true);
+  // The point of the guard: decided once, not once per mutation.
+  check('exactly one lookup started', r.connects === 1, `${r.connects} connects`);
+}
+
+console.log(`\n${failures ? failures + ' CHECK(S) FAILED' : 'NO FLICKER'}`);
+process.exit(failures ? 1 : 0);

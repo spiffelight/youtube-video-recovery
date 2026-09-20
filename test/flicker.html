@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en" dark>
+<head>
+  <meta charset="utf-8">
+  <title>Flicker harness</title>
+  <script>
+    document.write('<link rel="stylesheet" href="../src/panel.css?t=' + Date.now() + '">');
+  </script>
+</head>
+<body>
+  <!--
+    Reproduces a playing watch page under continuous DOM churn.
+
+    A working video mutates the DOM many times a second (time display,
+    progress bar), which drives the add-on's MutationObserver. The add-on must
+    decide once that there is nothing to do and then stay quiet: an earlier
+    version re-entered on every mutation, flashing a card and firing a network
+    lookup several times a second, forever.
+  -->
+  <ytd-watch-flexy>
+    <div id="full-bleed-container">
+      <div id="player-full-bleed-container">
+        <div id="movie_player"><video id="vid"></video></div>
+        <yt-playability-error-supported-renderers id="error-screen">
+          <b>placeholder</b>
+        </yt-playability-error-supported-renderers>
+      </div>
+    </div>
+    <div id="churn">0</div>
+  </ytd-watch-flexy>
+
+  <pre id="result">pending</pre>
+
+  <script>
+    (function () {
+      var params = new URLSearchParams(location.search);
+      var scene = params.get('scene') || 'playing';
+
+      var errorBox = document.getElementById('error-screen');
+      var video = document.getElementById('vid');
+
+      if (scene === 'playing') {
+        // readyState is a prototype getter; an own property shadows it.
+        Object.defineProperty(video, 'readyState', { value: 4 });
+        errorBox.style.cssText = 'display:block;width:640px;height:360px';
+      } else {
+        // Unavailable: no media element at all, and the page says why.
+        video.parentNode.removeChild(video);
+        errorBox.style.cssText = 'display:block;width:640px;height:360px';
+        var pr = { playabilityStatus: { status: 'LOGIN_REQUIRED', reason: 'This video is private' } };
+        var tag = document.createElement('script');
+        tag.type = 'text/plain';
+        tag.textContent = 'var ytInitialPlayerResponse = ' + JSON.stringify(pr) + ';';
+        document.body.appendChild(tag);
+      }
+
+      /*
+       * Counts lookups, and answers the way the background really would.
+       *
+       * Answering matters: for a working video the reply says "healthy", the
+       * card is torn down, and it is that teardown which used to make `tick`
+       * re-enter on the next mutation. A stub that stayed silent left the
+       * card in place and hid the loop entirely.
+       */
+      window.__connects = 0;
+      window.browser = {
+        runtime: {
+          connect: function () {
+            window.__connects++;
+            var listeners = [];
+            return {
+              onMessage: { addListener: function (fn) { listeners.push(fn); } },
+              onDisconnect: { addListener: function () {} },
+              postMessage: function (msg) {
+                if (!msg || msg.type !== 'start') return;
+                setTimeout(function () {
+                  var result = scene === 'playing'
+                    ? { verdict: 'ok', found: true, sources: [], links: [] }
+                    : { verdict: 'private', found: false, sources: [], links: [] };
+                  listeners.forEach(function (fn) {
+                    fn({ type: 'update', ok: true, done: true, result: result });
+                  });
+                }, 30);
+              }
+            };
+          },
+          sendMessage: function () { return Promise.resolve({}); }
+        }
+      };
+
+      // Churn the DOM the way a playing video does.
+      var churn = document.getElementById('churn');
+      var n = 0;
+      var timer = setInterval(function () { churn.textContent = String(++n); }, 20);
+
+      setTimeout(function () {
+        clearInterval(timer);
+        document.getElementById('result').textContent = JSON.stringify({
+          scene: scene,
+          connects: window.__connects,
+          panelPresent: !!document.getElementById('ytrp-panel'),
+          mutations: n
+        });
+      }, 3000);
+    })();
+  </script>
+  <script src="../src/lib/core.js"></script>
+  <script src="../src/content.js"></script>
+</body>
+</html>

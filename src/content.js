@@ -697,6 +697,38 @@
   var activeId = null;
 
   /*
+   * The video we have already concluded needs no panel.
+   *
+   * Without this, deciding to show nothing was indistinguishable from never
+   * having run: `tick` re-entered whenever no panel was present, and a
+   * playing video mutates the DOM continuously, so the whole lookup fired
+   * several times a second forever — visible as a flickering card and a
+   * steady trickle of pointless network requests on ordinary videos.
+   */
+  var settledId = null;
+
+  function settle(id, why) {
+    settledId = id;
+    removePanel();
+    if (why) log(why);
+  }
+
+  /*
+   * Is the player actually playing something?
+   *
+   * Decisive and free, and it does not depend on the page's inline state —
+   * which is what makes it usable after an SPA navigation, where that state
+   * still describes the previous video. An unavailable video has no media
+   * element with a source; a working one does.
+   */
+  function looksPlayable() {
+    var v = document.querySelector(
+      '#movie_player video, video.html5-main-video, #player video');
+    if (!v) return false;
+    return v.readyState > 0 || !!v.currentSrc || v.duration > 0;
+  }
+
+  /*
    * The id this document was served for. The inline ytInitialPlayerResponse
    * describes this video and nothing else: after an SPA navigation it is
    * stale, and it cannot be re-derived by comparing videoDetails.videoId
@@ -713,7 +745,20 @@
     log('anchor found for', id, '- status:', state.status || '(unreadable)',
         'state:', state.state);
 
-    if (core.healthy(state.state)) { removePanel(); return; }
+    if (core.healthy(state.state)) {
+      settle(id, 'page reports a healthy video - nothing to do');
+      return;
+    }
+
+    /*
+     * No readable page state means an SPA navigation, where the only prior
+     * fallback was to ask the network. Asking the DOM first settles the
+     * common case — an ordinary working video — for free.
+     */
+    if (!pr && looksPlayable()) {
+      settle(id, 'player is playing - nothing to recover');
+      return;
+    }
 
     /*
      * A status we successfully read but do not recognise is not a reason to
@@ -721,8 +766,8 @@
      * `pr` is null) justifies falling back to asking the network.
      */
     if (pr && state.state === core.STATE.UNKNOWN) {
-      log('unhandled playability status:', state.status, '- leaving the page alone');
-      removePanel();
+      settle(id, 'unhandled playability status: ' + state.status +
+                 ' - leaving the page alone');
       return;
     }
 
@@ -736,7 +781,23 @@
                 : 'unknown';
 
     var progress = renderProgress(verdict);
-    mount(progress.root, anchor);
+    var mounted = false;
+
+    function showProgress() {
+      if (mounted) return;
+      var a = findErrorAnchor();
+      if (!a) return;
+      mount(progress.root, a);
+      mounted = true;
+    }
+
+    /*
+     * Only when the page itself said the video is unavailable. On the SPA
+     * path there is no such confirmation yet, and mounting first meant every
+     * ordinary video briefly flashed a "Looking for a record…" card before
+     * oEmbed came back and it was torn down again.
+     */
+    if (pr) showProgress();
 
     var port;
     try {
@@ -781,7 +842,7 @@
       if (m.error) log('lookup error:', m.error);
 
       if (!r) {
-        if (m.done) { log('lookup produced no result'); removePanel(); }
+        if (m.done) settle(id, 'lookup produced no result');
         return;
       }
 
@@ -790,8 +851,7 @@
       // After an SPA navigation the state came from oEmbed; if that says the
       // video is fine, there is nothing to show.
       if (core.healthy(v)) {
-        log('video is available - removing panel');
-        removePanel();
+        settle(id, 'video is available - nothing to show');
         return;
       }
 
@@ -810,8 +870,9 @@
         mount(renderFound(v, r, archiveFooter(m, stageState, resume, stop)), anchorNow);
       } else if (m.done) {
         mount(renderNotFound(v, r), anchorNow);
-      } else if (!document.getElementById(PANEL_ID)) {
-        mount(progress.root, anchorNow);
+      } else {
+        // Confirmed unavailable but nothing found yet: now the card is earned.
+        showProgress();
       }
     });
 
@@ -833,6 +894,7 @@
   function tick() {
     var id = currentVideoId();
     if (!id) { removePanel(); activeId = null; return; }
+    if (id === settledId) return;
 
     var anchor = findErrorAnchor();
     if (!anchor) {
